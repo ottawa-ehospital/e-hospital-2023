@@ -1,0 +1,28 @@
+Steps
+1. Open folder in visual studio
+2. Open new terminal and execute "npm install"
+3. Execute "node app.js"
+4. 
+
+In Postman
+1. Open new
+2. API method to "Post"
+3. Write "localhost:7171/checkPnemonia" beside it
+4. Then go to "body"
+5. Click "form-data"
+6. In key write "imagefile" and select "file" by pressing down arrow key
+7. In value upload any x-ray image
+8 At last click "send"
+
+
+
+
+
+Prerequists 
+1. Postman
+2. Python
+3. Nodejs
+4. Visual Studio Code
+
+
+IF PYTHON IS RUNNING OK IN YOUR SYSTEM THEN RENAME "TEST.PY" FROM CODE TO THE FILE "YOUR FILE NAME.PY"
