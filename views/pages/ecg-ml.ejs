@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <%- include('../partials/header') -%>
+        <meta charSet="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>ECG Arrhythmia Diagnostics | E-Hospital</title>
+        <meta name="author" content="E-Hospital" />
+        <meta property="og:url" content="dashboard.html" />
+        <meta property="og:site_name" content="E-Hospital" />
+        <meta property="og:title" content="E-Hospital Dashboard" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://img1.wsimg.com/isteam/stock/Ddj9aVd" />
+        <meta property="og:locale" content="en_CA" />
+        <style>
+            .spinner {
+                border: 16px solid #f3f3f3;
+                /* Light grey */
+                border-top: 16px solid #3498db;
+                /* Blue */
+                border-radius: 50%;
+                margin-left: 50%;
+                width: 120px;
+                height: 120px;
+                align-items: center;
+                justify-content: center;
+
+                animation: spin 2s linear infinite;
+            }
+
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+</head>
+
+<body>
+    <header>
+        <%- include('../partials/header') -%>
+    </header>
+    <main>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h1>ECG Arrhythmia Diagnostics</h1>
+                    <br>
+                    <img src="images/ecg_ml.jpg" alt="Doctor using tablet to diagnose medical technology" width="70%">
+                    <div id="upload-form">
+                        <br>
+                        <div class="form-group">
+                            <label for="csv-file">Select CSV file:</label>
+                            <input type="file" class="form-control-file" id="csv-file" name="csv-file" accept=".csv">
+                        </div>
+                        <button onclick="button_pressed()" id="submitted" type="submit" class="btn btn-primary"
+                            style="background-color: black; color: white;">Upload</button>
+                    </div>
+                    <br>
+                </div>
+                <div class="col-md-6">
+                    <br>
+                    <br>
+                    <h4>Our problem statement:</h4>
+                    <br>
+                    <div id="project statement">
+                        <p>
+                            Overall, diagnosing arrhythmia can be challenging for healthcare professionals and requires
+                            careful
+                            interpretation of electrocardiogram (ECG) signals and other patient data, as well as
+                            knowledge of the
+                            underlying causes and risk factors for arrhythmia such as symptoms variability, ECG
+                            variability, Co-occuring
+                            conditions, limited diagnostic tools and heart complexity. The aim of this project is to
+                            develop an artificial
+                            intelligence (AI) system that can accurately diagnose arrhythmia using ECG signals.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-12" style="align-items: center;
+                justify-content: center;">
+                    <br>
+                    <div id="spinner" class="spinner" style="display:none;"></div>
+                    <br>
+                    <div id="plot"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <%- include('../partials/footer-new') -%>
+    </footer>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script type="text/javascript">
+        let data = [];
+        $(document).ready(function () {
+            $('#csv-file').on('change', function () {
+                var file = $(this)[0].files[0];
+                var reader = new FileReader();
+                reader.readAsText(file);
+                reader.onload = function () {
+                    data = Papa.parse(reader.result).data;
+                    data[0] = data[0].map(function (element) {
+                        return element * 10;
+                    });
+                    // console.log(typeof (data[1]));
+                };
+            });
+        });
+
+        function button_pressed() {
+            postData(data);
+        }
+
+        function postData(data) {
+            const spinner = document.getElementById('spinner');
+            spinner.style.display = 'block';
+
+            fetch('https://ecg-ml-api.onrender.com/predict', {
+                method: 'POST',
+                mode: "cors",
+                credentials: "same-origin",
+                redirect: "follow",
+                referrerPolicy: "no-referrer",
+                headers: {
+                    'Content-Type': 'application/json'
+
+                },
+                body: JSON.stringify({ "data": data[1] }),
+            })
+                .then(response => {
+                    if (response.ok) {
+                        // console.log(data);
+                        return response.json()
+                    } else {
+                        throw new Error('Request failed.' + error);
+                    }
+                })
+                .then(blob => {
+                    spinner.style.display = 'none';
+                    plotData(blob["result"], data);
+                }
+                )
+                .catch(error => {
+                    console.error(error);
+                });
+        }
+
+        function plotData(response, data) {
+            let exp = "";
+            if (response == "N") {
+                exp = "Normal"
+            }
+            if (response == "S") {
+                exp = "Supra-ventricular premature"
+            }
+            if (response == "V") {
+                exp = "Ventricular escape"
+            }
+            if (response == "F") {
+                exp = "Fusion of ventricular and normal"
+            }
+            if (response == "Q") {
+                exp = "Unclassifiable"
+            }
+
+            var trace1 = {
+                x: data[0],
+                y: data[1],
+                mode: "lines",
+                type: "scatter"
+            };
+            var layout = {
+                title: 'ECG diagnostic result: ' + exp,
+                xaxis: { range: [-10, 1700], title: "Time (ms)" },
+                yaxis: { range: [-0.1, 1.1], title: "Voltage (mV)" },
+            };
+            var plotData = [trace1];
+            Plotly.newPlot('plot', plotData, layout);
+        }
+    </script>
+</body>
+
+</html>
