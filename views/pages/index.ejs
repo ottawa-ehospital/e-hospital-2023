@@ -26,6 +26,12 @@
   <meta property="og:locale" content="en_CA" />
   <link href="css/login.css" rel="stylesheet" type="text/css">
   <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+
+  
+
+  
+  
+
  
 
 </head>
@@ -36,8 +42,106 @@
 <div>
   
   <img class = "banner" src="images/1.png">
+  
+  
+  <!DOCTYPE html> 
+  <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        .notification-widget {
+          position: fixed;
+          top: 250px;
+          right: 20px;
+          color: white !important;
+          font-weight: bold !important;
+          display: flex;
+          align-items: center;
+          background-color: #f0f0f0;
+          border: 2px solid;
+          border-radius: 10px;
+          padding: 10px;
+          width: 300px;
+          cursor: pointer;
+          margin-top: 20px; 
+        }
+  
+        .notification-icon {
+          background-size: cover;
+          width: 30px;
+          height: 30px;
+          margin-right: 10px;
+        }
+  
+        .notification-text {
+          flex: 1;
+          color: black;
+          text-align: center;
+        }
+  
+        .notification-message {
+          font-size: 16px;
+          margin: 0;
+        }
+  
+        .specialization {
+          font-weight: bold;
+          margin: 10px 5px;
+        }
+  
+        .num-doctors {
+          margin: 0 5px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="notification-widget">
+        <span class="notification-icon"></span>
+        <div class="notification-text">
+          <p class="notification-message">We have the following doctors available online:</p>
+        </div>
+      </div>
+  
+      <script>
+        // select the notification widget element
+const notificationWidget = document.querySelector('.notification-widget');
 
-</div>
+// add a scroll event listener to the window object
+window.addEventListener('scroll', () => {
+  if (window.pageYOffset > 100) {
+    // if the user has scrolled down more than 100 pixels, hide the notification widget
+    notificationWidget.style.display = 'none';
+  } else {
+    // if the user has scrolled up to the top of the page, show the notification widget
+    notificationWidget.style.display = 'flex';
+  }
+});
+
+        // make a GET request to the server to get the number of available doctors by specialization
+        fetch('/get_availableDoctors')
+          .then(response => response.json())
+          .then(data => {
+            console.log(data);
+            // update the content of the notification message with the number of available doctors by specialization
+            const notificationText = document.querySelector('.notification-text');
+            for (let i = 0; i < data.length; i++) {
+              const specParagraph = document.createElement('p');
+              specParagraph.classList.add('specialization');
+              specParagraph.textContent = `${data[i].Specialization}:`;
+              notificationText.appendChild(specParagraph);
+  
+              const numDoctorsSpan = document.createElement('span');
+              numDoctorsSpan.classList.add('num-doctors');
+              numDoctorsSpan.textContent = `${data[i].NumberOfDoctors}`;
+              specParagraph.appendChild(numDoctorsSpan);
+            }
+          })
+          .catch(error => console.error(error));
+      </script>
+    </body>
+  </html>
+
+</div> 
 
 
 <!-- Clarity Section -->

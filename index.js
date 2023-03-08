@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
+const FormData = require('form-data');
 const path = require('path');
 const conn = require('./dbConnection/dbConnection');
 const mongoClient = require('./dbConnection/mongodbConnection');
@@ -13,7 +14,6 @@ const FormData = require('form-data');
 const memoryStorage = multer.memoryStorage()
 const upload = multer({ storage: memoryStorage })
 const port = process.env.PORT || 5000;
-
 
 
 var sql = '';
@@ -41,98 +41,10 @@ app.get('/respiratorymedicine', (req, res) => {
       // The response data contains the HTML content of the page
       const html = response.data;
 
-      // Set the Content-Type header to text/html
-      res.set('Content-Type', 'text/html');
-
-      // Send the HTML content of the page as the response
-      res.send(html);
-      console.log(req)
-    })
-    .catch(error => {
-      // If an error occurs, log the error and send a 500 Internal Server Error response
-      console.error(error);
-      res.sendStatus(500);
-    });
-});
-
-
-app.post('/pneumoniapredict', upload.single('image'),(req, res) => {
-  const form = new FormData();
-  
-  // Get the uploaded image file from the request body
-  const imageFile = req.file
-  
-  // Convert the image file to a buffer and add it to the form data
-  const imageData = fs.readFileSync(imageFile.path);
-  form.append('image', imageData, { filename: 'image.jpg', contentType: 'image/jpeg' });
-  
-  
-  // Send a POST request to the Flask app's /pneumoniapredict endpoint with the image data
-  axios.post('https://mlmodel2.herokuapp.com/pneumoniapredict', form, {
-    headers: form.getHeaders()
-  })
-    .then(response => {
-      // The response data contains the HTML content of the predict page
-      const html = response.data;
-      res.set('Content-Type', 'text/html');
-      res.send(html);
-    })
-    .catch(error => {
-      console.error(error);
-      res.sendStatus(500);
-    });
-});
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  }
-});
-
-
-app.get('/respiratoryMedicine2', (req, res) => {
-  res.render('pages/respiratoryMedicine',{message:'',prediction:''});
-});
-
-// Set up a route to handle form submissions and post to the Flask app
-app.post('/predict', upload.single('file'), (req, res) => {
-  const form = new FormData();
-  // Construct the URL of the Flask app's /predict endpoint
-  
-
-  const imageFile = req.file
-  
-  // Convert the image file to a buffer and add it to the form data
-  const imageData = fs.readFileSync(imageFile.path);
-  form.append('file', imageData, { filename: 'image.jpg', contentType: 'image/jpeg' });
-  
-  
-  // Send a POST request to the Flask app's /pneumoniapredict endpoint with the image data
-  axios.post('http://127.0.0.1:5000/predict', form, {
-    headers: form.getHeaders()
-  })
-    .then(response => {
-      // The response data contains the HTML content of the predict page
-      const prediction = response.data;
-      res.render('pages/respiratoryMedicine', { message: 'File uploaded successfully', prediction: prediction });
-      
-    })
-    .catch(error => {
-      console.error(error);
-      res.sendStatus(500);
-    });
-});
-
-
 app.get('/pneumonia', (req, res) => {
   res.render("pages/pneumonia");
 })
 
-app.get('/ecg', (req, res) => {
-  res.render("pages/ecg-ml");
-})
 
 app.get('/services', (req, res) => {
     res.render("pages/services");
@@ -159,7 +71,7 @@ app.get('/psychologyQuestionnaire', (req, res) => {
   res.render("pages/psychologyQuestionnaire");
 })
 app.get('/liver', (req, res) => {
-  res.render("pages/liver-prediction");
+  res.render("pages/liver");
 })
 app.get('/heartDiseasePrediction', (req, res) => {
   res.render("pages/heartDiseasePrediction");
@@ -210,8 +122,8 @@ app.get('/Breast-Diagnostic', (req, res) => {
     res.render("pages/Breast-Diagnostic");
 })
 
-app.get('/AlzheimersDiagnostics', (req, res) => {
-  res.render("pages/AlzheimersDiagnostics");
+app.get('/heartStrokeDetection', (req, res) => {
+  res.render("pages/heartStrokeDetection");
 })
 
 app.get('/heartStrokeDetection', (req, res) => {
@@ -343,8 +255,6 @@ app.get('/hospital', (req, res) => {
     res.render("pages/hospital");
 })
 
-
-
 app.get('/heartDiseasePrediction', (req, res) => {
   res.render("pages/heartDiseasePrediction");
 })
@@ -451,7 +361,6 @@ app.post('/send-contact-form', (req, res) => {
 
   }
 })
-
 
 app.post('/Hospital_DashBoard', (req, res) => { // For the Admin Credentials:  (Admin , Admin)
 
@@ -797,6 +706,59 @@ app.post('/get_doctorInfo', (req, res) => {
             .then(message => console.log(message.status));    //message.sid
               }
 })
+app.route("/ajax")
+.post(function(req,res){
+
+ res.send({response:req.body.Country});
+ console.log("success")
+console.log(req.body)
+console.log(req.body.Country)
+});
+app.post('/get_availableDentists', (req, res) => {
+  const Province = req.body.Province;
+  const City = req.body.City;
+  const Country = req.body.Country;
+  console.log(Province)
+  console.log(City)
+  console.log(Country)
+
+
+  sql = `SELECT Fname, Mname, Lname, Specialization, Location1, Location2, City, Province, Country, PostalCode, Availability FROM doctors_registration WHERE Specialization = 'Dentist' AND Availability = 1 AND Province = "${Province}" AND City ="${City}" AND Country = "${Country}"`;
+  conn.query(sql, (error, result) => {
+    if (error) throw error
+    console.log(result)
+    res.send(result);
+  })
+})
+
+app.get('/get_availableDoctors', (req, res) => {
+  sql = "SELECT Specialization, COUNT(Specialization) AS 'NumberOfDoctors' FROM doctors_registration WHERE Availability = 1 GROUP BY Specialization";
+  conn.query(sql, (error, result) => {
+    if (error) throw error
+    res.send(result);
+  })
+})
+
+app.post('/update_availability', (req, res) => {
+  const Availability = req.body.Availability;
+  const uuid = req.body.email;
+  const password = req.body.password;
+
+  sql = `UPDATE doctors_registration SET Availability = ${Availability} WHERE uuid = "${uuid}" AND password = "${password}" AND verification = true`;
+  console.log(sql)
+  conn.query(sql,(error, result) => {
+    if (error) throw error
+    if (result.affectedRows == 1) {
+      result.changedRows == 1 ? res.send({success:"Availability updated."}) : res.send({success:"The update is already in place."})
+    } else if (result.affectedRows == 0) {
+      res.send({error:"Your account info is not correct."});
+    } else if (result.affectedRows > 1) {
+      res.send({error:"Duplicate account updated, please contact the system manager."});
+    } else {
+      res.send({error:"Something goes wrong in the database."});
+    }
+  })
+})
 
 app.get('/get_diabetologyList', (req, res) => {
   sql = "SELECT Fname, Mname, Lname, Specialization, Location1, Location2, City, Province, Country, PostalCode, Availability FROM doctors_registration WHERE Specialization = 'Diabetology'";
@@ -1063,6 +1025,17 @@ app.get('/MS-diagnoses',(req, res) => {
 // user: "uottawabiomedicalsystems@gmail.com", //
 // pass: "@uOttawa5902",
 
+//christina&sanika
+app.route("/ajax")
+.post(function(req,res){
+
+ res.send({response:req.body.Country});
+ console.log("success")
+console.log(req.body)
+console.log(req.body.Country)
+});
+//christina&sanika
+
 const twilio = require("twilio");
 
 app.get('/sendEmail', (req, res) => {
@@ -1166,6 +1139,7 @@ app.get('/sendEmail', (req, res) => {
             }
 
         }
+        
 
 async function sms(){
 

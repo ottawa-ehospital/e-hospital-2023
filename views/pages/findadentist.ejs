@@ -3,18 +3,95 @@
 <br> <br> <br> <br> <br> <br> -->
 
 
+
+
 <!DOCTYPE html>
 <html lang="en-CA">
 <!-- Mirrored from e-hospital.godaddysites.com/register by HTTrack Website Copier/3.x [XR&CO'2014], Tue, 01 Nov 2022 05:04:01 GMT -->
 <!-- Added by HTTrack -->
 <meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
 
+
 <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script>
+        $(document).ready(function(){
+
+
+$("form").on("submit",function(event){
+
+
+   event.preventDefault();
+
+
+   let value_Country = $("#Country").val();
+   let value_Address = $("#Address").val();
+   let value_PostalCode = $("#PostalCode").val();
+   let value_City= $("#City").val();
+   let value_Province= $("#Province").val();
+   $.ajax({
+     url:'/get_availableDentists',
+     method: "POST",
+     contentType: "application/json",
+     data: JSON.stringify({"Address": value_Address,"PostalCode": value_PostalCode,"City": value_City,"Province": value_Province,"Country": value_Country}),
+     success: function(res){
+
+
+       console.log(res)
+       $("#dentistTable tr").remove();
+       var table = document.getElementById('dentistTable')
+       var row = `<tr>
+        <th>First Name</th>
+                <th>Middle Name</th>
+                <th>Last Name</th>
+                <th>Location 1</th>
+                <th>Location 2</th>
+
+        </tr>`    
+        table.innerHTML += row
+
+       
+       data=res
+       buildTable(data)
+       function buildTable(data){
+           var table = document.getElementById('dentistTable')
+   
+           for (var i = 0; i < data.length; i++){
+               var row = `<tr>
+                               <td>${data[i].Fname}</td>
+                               <td>${data[i].Mname}</td>
+                               <td>${data[i].Lname}</td>
+                               <td>${data[i].Location1}</td>
+                               <td>${data[i].Location2}</td>
+                         </tr>`
+               table.innerHTML += row
+   
+   
+           }
+       }
+
+}
+
+
+})
+
+
+
+
+})
+
+
+})  
+   
+   
+    </script>
+   
   <meta charSet="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Register | E-Hospital</title>
   <meta name="author" content="E-Hospital" />
+
 
   <meta property="og:url" content="register.html" />
   <meta property="og:site_name" content="E-Hospital" />
@@ -25,9 +102,12 @@
   <link rel="stylesheet" href="/css/style-starter.css">
   <link rel="stylesheet" href="/css/patients.css">
 
+
 </head>
 <body>
     <%- include('../partials/header') -%>
+
+
 
 
 <div class="container">
@@ -37,32 +117,38 @@
                 <div class="user-details">
                     <div class="input-box">
                         <span class="details">Address</span>
-                        <input type="text" name="Address" placeholder="Enter your address" required>
+                        <input type="text" name="Address" id="Address" placeholder="Enter your address" required>
                     </div>
                     <div class="input-box">
                         <span class="details">Postal Code</span>
-                        <input type="text" name="PostalCode" placeholder="Enter your Postal Code" required pattern="[0-9]{6}">
+                        <input type="text" name="PostalCode" id="PostalCode" placeholder="Enter your Postal Code" required>
                     </div>
                     <div class="input-box">
                         <span class="details">City</span>
-                        <input type="text" name="City" placeholder="Enter your City" required>
+                        <input type="text" name="City" id="City" placeholder="Enter your City" required>
                     </div>
                     <div class="input-box">
                         <span class="details">Province</span>
-                        <input type="text" name="Province" placeholder="Enter your Province" required>
+                        <input type="text" name="Province" id="Province" placeholder="Enter your Province" required>
                     </div>
                     <div class="input-box">
                         <span class="details">Country</span>
-                        <input type="text" name="Country" placeholder="Enter your Country" required>
+                        <input type="text" name="Country" id="Country" placeholder="Enter your Country" required>
                     </div>
                  </div>
                 <div class="button">
-                    <input type="submit" value="Submit">
+                    <input type="submit" value="Find Dentists">
                     <!-- Submit   -->
                 </div>
             </form>
         </div>
+        <table class="table table-striped">
+            
+        
+            <tbody id="dentistTable">
+            </tbody>
+        </table>
     </div>
 
-</body>
 
+</body>
