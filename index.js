@@ -908,14 +908,6 @@ app.post('/recordUpdate', upload.single("image"), (req,res) => {
   })
 })
 
-// This is a connection testing api 
-app.post('/connectionTesting', upload.single("image"), (req,res) => {
-  console.log("Request received by test api.");
-  console.log(req.file);
-  console.log(req.body);
-  res.send({prediction: "Request received by test api."});
-})
-
 app.post('/Hospital', (req, res) => {
     const get_HospitalInfo = req.body;
     var password = crypto.randomBytes(16).toString("hex");
@@ -1184,9 +1176,137 @@ client.messages
     })
 
 
+// This is a MongoDB import API template
+app.post('/imageUpload', upload.single("image"), async (req,res) => {
+  const phoneNumber = req.body.phoneNumber; // patient phone number, e.g. "6131230000"
+  const recordType = req.body.recordType; // the record type, e.g. "X-Ray", this represents the collection in the database (case sensitive)
+  const recordDate = req.body.recordDate; // record date, e.g. "2023-03-01 09:00:00"
+
+  // Check patient identity
+  if (phoneNumber == 0) {
+    res.send({error:"Missing patient phone number"});
+    return;
+  }
+  var patient_id = 0;
+  sql = `SELECT id FROM patients_registration WHERE MobileNumber = "${phoneNumber}"`;
+  // console.log(sql);
+  conn.query(sql, async (error, result) => {
+    if (error) {
+      res.send({error:"No patient matched in database."});
+      return;
+    }
+    if (result.length != 1) {
+      res.send({error:"Something wrong in MySQL."});
+      return;
+    }
+    patient_id = result[0].id;
+
+    const MongoResult = await imageUpload(patient_id, recordType, recordDate, req.file);
+    res.send(MongoResult);
+  });
+})
+
+// This is a MongoDB API template for retrieving image by patient phone number
+app.post('/imageRetrieveByPhoneNumber', async (req,res) => {
+  const phoneNumber = req.body.phoneNumber; // patient phone number, e.g. "6131230000"
+  const recordType = req.body.recordType; // the record type, e.g. "X-Ray", this represents the collection in the database (case sensitive)
+
+  // Check patient identity
+  if (phoneNumber == 0) {
+    res.send({error:"Missing patient phone number"});
+    return;
+  }
+  var patient_id = 0;
+  sql = `SELECT id FROM patients_registration WHERE MobileNumber = "${phoneNumber}"`;
+  // console.log(sql);
+  conn.query(sql, async (error, result) => {
+    if (error) {
+      res.send({error:"No patient matched in database."});
+      return;
+    }
+    if (result.length != 1) {
+      res.send({error:"Something wrong in MySQL."});
+      return;
+    }
+    patient_id = result[0].id;
+
+    const MongoResult = await imageRetrieveByPatientId(patient_id, recordType);
+    res.send(MongoResult);
+  });
+})
+
+// This is a MongoDB API template for retrieving image by record id 
+app.post('/imageRetrieveByRecordId', async (req,res) => {
+  const _id = req.body._id; // record id, e.g. "640b68a96d5b6382c0a3df4c"
+  const recordType = req.body.recordType; // the record type, e.g. "X-Ray", this represents the collection in the database (case sensitive)
+
+  const MongoResult = await imageRetrieveByRecordId(_id, recordType);
+  res.send(MongoResult);
+})
+
+// This is a connection testing api 
+app.post('/connectionTesting', upload.single("image"), (req,res) => {
+  console.log("Request received by test api.");
+  console.log(req.file);
+  console.log(req.body);
+  res.send({prediction: "Request received by test api."});
+})
 
 
+/**
+ * This is the function that updates a single file (image) to the patient record in MongoDB.
+ * @param {*} patient_id Existed id from the table "patients_registration" under MySQL database.
+ * @param {*} recordType The record type, e.g. "X-Ray", this also represents the collection name in the MongoDB (case sensitive).
+ * @param {*} recordDate The date when this record was generated, e.g. "2023-03-01 09:00:00".
+ * @param {*} file The record, can be an image or other file that can be used on ML prediction directly.
+ * @returns If success, return {success: "New image created.", id: "id of this record"}; otherwise, return {error:"Error message."}.
+ */
+async function imageUpload(patient_id, recordType, recordDate, file) {
+  if (!patient_id || !recordType || !recordDate || !file) {
+    return {error:"Missing patient id, record type, record date, or record file."};
+  }
 
+  const record = {
+    patient_id: patient_id,
+    RecordDate: recordDate,
+    file: file
+  }
 
+  const result = await mongoDb.collection(recordType).insertOne(record);
+  return {success: "New image created.", id: result.insertedId};
+}
+
+/**
+ * This is the function that retrieves all records in a specific record type in MongoDB through patient id.
+ * @param {*} patient_id Existed id from the table "patients_registration" under MySQL database.
+ * @param {*} recordType The record type, e.g. "X-Ray", this also represents the collection name in the MongoDB (case sensitive).
+ * @returns If success, return {success: [{Record A in JSON}, {Record B in JSON}, ...]}; otherwise, return return {error:"Error message."}.
+ */
+async function imageRetrieveByPatientId(patient_id, recordType) {
+  if (!patient_id || !recordType) {
+    return {error:"Missing patient id or record type."};
+  }
+
+  const sort = { RecordDate: -1 };
+  const result = await mongoDb.collection(recordType).find({ patient_id: patient_id }).sort(sort).toArray();
+  return {success: result};
+}
+
+/**
+ * This is the function that retrieves specific records in a specific record type in MongoDB through the id of the record.
+ * @param {*} _id The id of the record in MongoDB.
+ * @param {*} recordType The record type, e.g. "X-Ray", this also represents the collection name in the MongoDB (case sensitive).
+ * @returns If success, return {success: {Record in JSON}}; otherwise, return return {error:"Error message."}.
+ */
+async function imageRetrieveByRecordId(_id, recordType) {
+  if (!_id || !recordType) {
+    return {error:"Missing patient id or record type."};
+  }
+
+  var mongo = require('mongodb');
+  var o_id = new mongo.ObjectId(_id);
+  const result = await mongoDb.collection(recordType).findOne({ _id: o_id });
+  return {success: result};
+}
 
 app.listen(port, () => console.log(`Server running on the port : ${port}`))

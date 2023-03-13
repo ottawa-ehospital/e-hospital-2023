@@ -1,6 +1,6 @@
 const { MongoClient } = require('mongodb');
 
-const uri = "mongodb+srv://admin:admin@e-hospital.mgq2xgp.mongodb.net/?retryWrites=true&w=majority"
+const uri = "mongodb+srv://ehuser:ehuser@e-hospital.mgq2xgp.mongodb.net/?retryWrites=true&w=majority"
 const client = new MongoClient(uri);
 
 try {
@@ -15,11 +15,7 @@ try {
 
 module.exports = {
     getDb: function () {
-      return client.db("mldata");
-    },
-    createData: async function (collectionName, file) {
-        const result = await client.db("mldata").collection(collectionName).insertOne(file);
-        return result;
+      return client.db("htdata");
     }
 };
 
